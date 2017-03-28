@@ -9,7 +9,7 @@ entity rom_for_crc8 is
 end rom_for_crc8;
 
 --
--- ROM in this architecture stores CRC sums 
+-- ROM in this architecture stores CRC sums
 -- for constant input vector X"a0"
 -- n-th generated CRC sum is stored under n-th address
 --
@@ -33,7 +33,7 @@ begin
 end const_a0;
 
 --
--- ROM in this architecture stores CRC sums 
+-- ROM in this architecture stores CRC sums
 -- for constant input vector X"66"
 -- n-th generated CRC sum is stored under n-th address
 --
