@@ -39,6 +39,7 @@ ARCHITECTURE behavior OF crc8_tb IS
   signal data_out_66 : std_logic_vector(7 downto 0);
   -- access address
   signal address : std_logic_vector(2 downto 0) := (others => '0');
+
   signal test_passed : std_logic := '1';
 
 BEGIN
@@ -88,21 +89,21 @@ BEGIN
      -- can't test both at the same time 'cause it's sequential
     data_in <= X"66";
     wait until clk = '1';
-    address <= (others => '0');
     for i in integer range 0 to 7 loop
       address <= std_logic_vector(to_unsigned(i, 3));
       wait until clk = '1';
-      report "address: " & integer'image(to_integer(unsigned(address)));
-      report "data_out_66: " & integer'image(to_integer(unsigned(data_out_66)));
-      report "crc_out: " & integer'image(to_integer(unsigned(crc_out)));
+      -- report "address: " & integer'image(to_integer(unsigned(address)));
+      -- report "data_out_66: " & integer'image(to_integer(unsigned(data_out_66)));
+      -- report "crc_out: " & integer'image(to_integer(unsigned(crc_out)));
       if data_out_66 = crc_out then
-        report "pass";
+        -- report "pass";
         test_passed <= test_passed and '1';
       else
-        report "fail";
+        -- report "fail";
         test_passed <= test_passed and '0';
       end if;
-      report "----------";
+      -- report "----------";
+      
     end loop;
 
     wait;
