@@ -63,6 +63,10 @@ BEGIN
     wait for clk_period;
     reset <= '0';
     pusher <= '1';
+    wait for clk_period*5;
+    reset <= '1';
+    wait for clk_period*5;
+    reset <= '0';
 		-- assert driver = 			-- test what we've got
 		--   report "expected state '01' on driver not achieved -- got '" & str(driver) & "'";
 
