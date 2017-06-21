@@ -32,9 +32,9 @@ architecture test of testbench is
         );
         port (
             clk    : in std_logic;
-            output : in std_logic;
             set    : in std_logic;
             inc    : in std_logic;
+            output : in std_logic;
             data   : inout std_logic_vector(COUNTER_WIDTH-1 downto 0)
         );
     end component;
@@ -50,6 +50,19 @@ architecture test of testbench is
         );
     end component;
 
+    component addr_reg
+        generic (
+            WORD_WIDTH : integer := 9;
+            ADDRESS_WIDTH : integer := 5
+        );
+        port (
+            clk:       in std_logic;
+            cmd:       in std_logic;
+            data:      inout std_logic_vector(WORD_WIDTH-1 downto 0) := (others=>'Z');
+            address:   out std_logic_vector(ADDRESS_WIDTH-1 downto 0) := (others=>'Z')
+        );
+    end component;
+
     component controller
         generic (
             ADDRESS_WIDTH : integer := 5;
@@ -58,8 +71,7 @@ architecture test of testbench is
         port (
             clk      : in std_logic;
             data_bus : inout std_logic_vector(WORD_WIDTH-1 downto 0);
-            control  : out std_logic_vector(5 downto 0);
-            pc_ctrl  : out std_logic_vector(2 downto 0); -- set, inc, out
+            ctrl_out : out control_t;
             dbg      : out debug_t
         );
     end component;
@@ -88,18 +100,40 @@ architecture test of testbench is
     signal clk            : std_logic := '0';
     signal data_bus       : std_logic_vector(WORD_WIDTH-1 downto 0) := (others => 'Z');
 
+    signal control : control_t := (pc=> "ZZZ", others => 'Z');
 
+    signal c_pc  : std_logic_vector(2 downto 0);
+    signal c_mem : std_logic;
+    signal c_ac  : std_logic;
+    signal c_mar : std_logic;
+    signal c_mbr : std_logic;
+    signal c_ir  : std_logic;
+    signal c_inreg : std_logic;
+    signal c_outreg : std_logic;
 
+    signal debug   : debug_t(1 downto 0);
+    signal dbg_state : std_logic_vector(3 downto 0);
+    signal dbg_ctr : std_logic_vector(3 downto 0);
     -- ram controls
-    signal mem_cmd  : std_logic := 'Z';
+    -- signal mem_cmd  : std_logic := 'Z';
     signal mem_addr : std_logic_vector(ADDRESS_WIDTH-1 downto 0) := (others => 'Z');
 
-    -- pc controls
-    signal pc_out : std_logic := '0';
-    signal pc_set : std_logic := '0';
-    signal pc_inc : std_logic := '0';
+    -- pc controls: set, inc, out
+    -- signal pc_cmd : std_logic_vector(2 downto 0) := "000";
+
+    signal mar_cmd: std_logic := 'Z';
 
 begin
+    c_pc  <= control.pc; 
+    c_mem <= control.mem;
+    c_ac  <= control.ac;
+    c_mar <= control.mar;
+    c_mbr <= control.mbr;
+    c_ir  <= control.ir;
+    c_inreg <= control.inreg;
+    c_outreg <= control.outreg;
+    dbg_state <= debug(0);
+    dbg_ctr <= debug(1);
 
     memory : ram
     generic map (
@@ -108,7 +142,7 @@ begin
     )
     port map (
         clk => clk,
-        cmd => mem_cmd,
+        cmd => control.mem,
         address => mem_addr,
         data => data_bus
     );
@@ -119,22 +153,34 @@ begin
     )
     port map (
         clk => clk,
-        output => pc_out,
-        set => pc_set,
-        inc => pc_inc,
+        set => control.pc(2),
+        inc => control.pc(1),
+        output => control.pc(0),
         data => data_bus(ADDRESS_WIDTH-1 downto 0)
     );
 
-    -- mar : reg
-    -- generic map (
-    --     WORD_WIDTH => WORD_WIDTH
-    -- )
-    -- port map (
-    --     clk
-    --     cmd
-    --     data
-    -- );
+    mar : addr_reg
+    generic map (
+        WORD_WIDTH => WORD_WIDTH
+    )
+    port map (
+        clk => clk,
+        cmd => mar_cmd,
+        data => data_bus,
+        address => mem_addr
+    );
 
+    ctrl : controller
+    generic map (
+        ADDRESS_WIDTH => 5,
+        WORD_WIDTH => 9
+    )
+    port map (
+        clk => clk,
+        data_bus => data_bus,
+        ctrl_out => control,
+        dbg => debug
+    );
     -- mbr : reg
     -- generic map (
     --     WORD_WIDTH => WORD_WIDTH
@@ -155,63 +201,19 @@ begin
     --     data
     -- );
 
-    -- ir : reg
-    -- generic map (
-    --     WORD_WIDTH => WORD_WIDTH
-    -- )
-    -- port map (
-    --     clk
-    --     cmd
-    --     data
-    -- );
+    ir : reg
+    generic map (
+        WORD_WIDTH => WORD_WIDTH
+    )
+    port map (
+        clk => clk,
+        cmd => control.ir,
+        data => data_bus    
+    );
 
     test_process : process
     begin
-        ---------------------------------------------------
-        -- Test 1.
-        --
-        -- Read a value from memory address provided by PC
-        ---------------------------------------------------
-
         wait for 100 ns;
-        -- prepare data in memory
-        mem_cmd <= '1';
-        mem_addr <= "01010";
-        data_bus <= "100110011";
-        wait for clk_period;
-
-        -- clear memory controls
-        mem_cmd <= 'Z';
-        mem_addr <= "ZZZZZ";
-        -- set pc to the same address
-        data_bus <= "000001010";
-        pc_set <= '1';
-        wait for clk_period;
-
-        -- output pc value
-        pc_set <= '0';
-        pc_out <= '1';
-        data_bus <= "0000ZZZZZ";
-        wait for clk_period;
-
-        -- read from memory
-        pc_out <= '0';
-        mem_addr <= data_bus(ADDRESS_WIDTH-1 downto 0);
-        mem_cmd <= '0';
-        data_bus <= DATA_CLR;
-        wait for clk_period;
-
-        mem_cmd <= 'Z';
-        assert data_bus = "100110011"
-            report "expected '100110011' but got '" & str(data_bus) & "'";
-
-        wait for clk_period;
-        -- reset all
-        mem_addr <= ADDR_CLR;
-        data_bus <= DATA_CLR;
-
-        wait for 100 ns;
-
 
         wait;
     end process;

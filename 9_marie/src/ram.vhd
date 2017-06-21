@@ -58,7 +58,11 @@ architecture arch of ram is
         of std_logic_vector(WORD_WIDTH-1 downto 0);
 
 
-    signal memory : memory_t := (others => WORD_EMPTY);
+    signal memory : memory_t := (
+        "000000001", "000000010", "000000011", "000000100",
+        "000000101", "000000110", "000000111", "000001000",
+        "000001001", "000001010", "000001011", "000001100",
+        others => WORD_EMPTY);
 
 begin
 
