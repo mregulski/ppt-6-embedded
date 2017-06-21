@@ -5,13 +5,12 @@ use work.txt_util.all;
 
 entity addr_reg is
     generic (
-        WORD_WIDTH : integer := 9;
         ADDRESS_WIDTH : integer := 5
     );
     port (
         clk:       in std_logic;
         cmd:       in std_logic;
-        data:      inout std_logic_vector(WORD_WIDTH-1 downto 0) := (others=>'Z');
+        data:      inout std_logic_vector(ADDRESS_WIDTH-1 downto 0) := (others=>'Z');
         address:   out std_logic_vector(ADDRESS_WIDTH-1 downto 0) := (others=>'Z')
     );
 end addr_reg;
@@ -21,9 +20,9 @@ architecture arch of addr_reg is
     constant CMD_READ  : std_logic := '0';
     constant CMD_WRITE : std_logic := '1';
 
-    constant BUS_FREE   : std_logic_vector(WORD_WIDTH-1 downto 0) := (others => 'Z');
+    constant BUS_FREE   : std_logic_vector(ADDRESS_WIDTH-1 downto 0) := (others => 'Z');
 
-    signal state : std_logic_vector(WORD_WIDTH-1 downto 0) := (others => '0');
+    signal state : std_logic_vector(ADDRESS_WIDTH-1 downto 0) := (others => '0');
 
 begin
     address <= state(ADDRESS_WIDTH-1 downto 0);

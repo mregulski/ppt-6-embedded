@@ -9,7 +9,7 @@ entity pc is
     );
     port (
         clk      : in std_logic;
-        output   : in std_logic; -- if 1, output the state to data
+        dout   : in std_logic; -- if 1, output the state to data
         set      : in std_logic; -- if 1, override the state with value from data
         inc      : in std_logic;
         data     : inout std_logic_vector(COUNTER_WIDTH-1 downto 0)
@@ -35,7 +35,7 @@ architecture arch of pc is
     --    * set `data` to target value                                           --
     --    * counter's state is updated on the next tick                          --
     -- 3. Output                                                                 --
-    --    * set `output` to `1`                                                  --
+    --    * set `dout` to `1`                                                  --
     --    * clear `data` (set to "ZZ...Z")                                       --
     --    * counter's state will be written to `data` on next tick               --
     --                                                                           --
@@ -60,8 +60,7 @@ begin
                     state <= std_logic_vector(unsigned(state) + 1);
                 end if;
                 data <= BUS_CLR;
-            elsif output = '1' then
-                report "output active";
+            elsif dout = '1' then
                 data <= state;
             else
                 data <= BUS_CLR;
