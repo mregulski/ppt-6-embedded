@@ -8,10 +8,11 @@ entity acreg is
         WORD_WIDTH : integer := 9
     );
     port (
-        clk:       in std_logic;
-        cmd:       in std_logic;
-        data:      inout std_logic_vector(WORD_WIDTH-1 downto 0) := (others=>'Z');
-        alu:       inout std_logic_vector(WORD_WIDTH-1 downto 0) := (others=>'Z')
+        clk     : in std_logic;
+        cmd     : in std_logic;
+        alu_get : in std_logic;
+        data    : inout std_logic_vector(WORD_WIDTH-1 downto 0) := (others=>'Z');
+        alu     : inout std_logic_vector(WORD_WIDTH-1 downto 0) := (others=>'Z')
     );
 end acreg;
 
@@ -54,11 +55,18 @@ begin
     begin
         if rising_edge(clk) then
             if cmd = CMD_READ then
+                report "AC:READ";
                 data <= state;
             elsif cmd = CMD_WRITE then
+                report "AC:WRITE";
                 state <= data;
                 data <= BUS_FREE;
+            elsif alu_get = '1' then
+                report "AC:ALU_GET";
+                state <= alu;
+                data <= BUS_FREE;
             else
+                -- report "AC:NOP";
                 data <= BUS_FREE;
             end if;
         end if;

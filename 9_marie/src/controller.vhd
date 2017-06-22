@@ -55,8 +55,11 @@ architecture arch of controller is
     constant PC_INC    : std_logic_vector(2 downto 0) := "010"; -- increment PC
     constant PC_OUTPUT : std_logic_vector(2 downto 0) := "001"; -- output PC to the bus
     constant PC_NOP    : std_logic_vector(2 downto 0) := "000";
+    -- for ALU
+    constant ALU_ADD   : std_logic := '1';
+    constant ALU_SUBT  : std_logic := '0';
 
-    -- all the control signals
+    -- the control signals
     signal control : control_t := (pc=> "ZZZ", others => 'Z');
 
 
@@ -84,6 +87,7 @@ begin
         variable opcode    : std_logic_vector(3 downto 0);
         variable cmp       : std_logic_vector(1 downto 0);
         variable cmp_res   : boolean;
+        constant state_rst : integer := -1;
 
     begin
         case state_cur is
@@ -181,12 +185,11 @@ begin
                                 -- state_nxt <= EXECUTE;
                             when 6 =>
                                 control.AC <= CMD_NOP;
-                                state_ctr := -1;
+                                state_ctr := state_rst;
                                 state_nxt <= FETCH;
                             when others =>
-                                assert false report "EXECUTE:LOAD:wut";
+                                assert false report "EXECUTE:LOAD:wut:invalid state_ctr: " & str(state_ctr);
                         end case;
-                        -- state_ctr := state_ctr + 1;
                     when STORE => -- ac -> mem[addr]
                         report "EXECUTE:STORE:" & str(state_ctr);
                         case state_ctr is
@@ -206,17 +209,38 @@ begin
                                 -- state_nxt <= EXECUTE;
                             when 3 =>
                                 control.MAR <= CMD_NOP;
-                                state_ctr := -1;
+                                state_ctr := state_rst;
                                 state_nxt <= STORE;
                             when others =>
-                                report "EXECUTE:STORE:wut";
-                                state_nxt <= FETCH;
+                                assert false report "EXECUTE:STORE:invalid state_ctr: " & str(state_ctr);
                         end case;
 
                     when ADD =>
-                        report "EXECUTE:ADD";
+                        report "EXECUTE:ADD:" & str(state_ctr);
+                        -- load mem[addr] to bus and tell alu to ADD stuff
+                        case state_ctr is
+                            when 0 =>
+                                control.IR <= CMD_READ;
+                            when 1 =>
+                                control.IR <= CMD_NOP;
+                                control.MAR <= CMD_WRITE;
+                            when 2 =>
+                                control.MAR <= CMD_NOP;
+                                control.MEM <= CMD_READ;
+                            when 3 =>
+                                control.MEM <= CMD_NOP;
+                                control.ALU <= ALU_ADD;
+                            when 4 =>
+                                control.ALU2AC <= '1';
+                                state_nxt <= FETCH;
+                            when 5 =>
+                                control.AC <= CMD_READ;
+                                control.AC <= CMD_NOP;
+                                control.ALU2AC <= '0';
+                            when others =>
+                        end case;
                     when SUBT =>
-                        report "EXECUTE:SUBT";
+                        report "EXECUTE:SUBT:" & str(state_ctr);
                     when CIN =>
                         report "EXECUTE:CIN:" & str(state_ctr);
                         case state_ctr is
@@ -227,11 +251,10 @@ begin
                                 control.AC <= CMD_WRITE;
                             when 2 =>
                                 control.AC <= CMD_NOP;
-                                state_ctr := -1;
+                                state_ctr := state_rst;
                                 state_nxt <= FETCH;
                             when others =>
-                                state_ctr := -1;
-                                state_nxt <= FETCH;
+                                assert false report "EXECUTE:CIN:invalid state_ctr: " & str(state_ctr);
                         end case;
                     when COUT =>
                         report "EXECUTE:COUT:" & str(state_ctr);
@@ -243,11 +266,10 @@ begin
                                 control.OUTREG <= CMD_WRITE;
                             when 2 =>
                                 control.OUTREG <= CMD_NOP;
-                                state_ctr := -1;
+                                state_ctr := state_rst;
                                 state_nxt <= FETCH;
                             when others =>
-                                state_ctr := -1;
-                                state_nxt <= FETCH;
+                                assert false report "EXECUTE:COUT:invalid state_ctr: " & str(state_ctr);
                         end case;
                     when HALT =>
                         assert false report "received HALT - stopping";
@@ -264,11 +286,13 @@ begin
                                 cmp := bus_buffer(ADDRESS_WIDTH-1 downto ADDRESS_WIDTH-2); -- must wait this long because reasons
                                 -- do the comparing
                                 if cmp = "00" then -- LT 0
-                                    report "SKIPCOND:comparing AC < 0";
+                                    report "SKIPCOND:comparing AC: "& str(bus_buffer) & " < 0" ;
                                     cmp_res := signed(bus_buffer) < to_signed(0, WORD_WIDTH);
+                                    report "SKIPCOND: " & boolean'image(cmp_res);
                                 elsif cmp = "01" then -- EQ 0
-                                    report "SKIPCOND:comparing AC = 0";
+                                    report "SKIPCOND:comparing AC: "& str(bus_buffer) & " = 0";
                                     cmp_res := signed(bus_buffer) = to_signed(0, WORD_WIDTH);
+                                    report "SKIPCOND: "& boolean'image(cmp_res);
                                 elsif cmp = "10" then -- GT 0
                                     report "SKIPCOND:comparing AC > 0";
                                     cmp_res := signed(bus_buffer) > to_signed(0, WORD_WIDTH);
@@ -280,17 +304,15 @@ begin
                                     -- increment pc
                                     control.PC <= PC_INC;
                                 else
-                                    state_ctr := -1;
+                                    state_ctr := state_rst;
                                     state_nxt <= FETCH;
                                 end if;
                             when 3 =>
                                 control.PC <= PC_NOP;
-                                state_ctr := -1;
+                                state_ctr := state_rst;
                                 state_nxt <= FETCH;
                             when others =>
-                                control.PC <= PC_NOP;
-                                state_ctr := -1;
-                                state_nxt <= FETCH;
+                                assert false report "EXECUTE:SKIPCOND:invalid state_ctr: " & str(state_ctr);
                         end case;
                     when JUMP =>
                         report "EXECUTE:JUMP:" & str(state_ctr);
@@ -302,9 +324,10 @@ begin
                                 control.PC <= PC_SET;
                             when 2 =>
                                 control.PC <= PC_NOP;
-                                state_ctr := -1;
+                                state_ctr := state_rst;
                                 state_nxt <= FETCH;
                             when others =>
+                                assert false report "EXECUTE:JUMP:invalid state_ctr: " & str(state_ctr);
                         end case;
                     when UNDEF =>
                         state_nxt <= FETCH;
@@ -327,10 +350,10 @@ begin
                         state_nxt <= STORE;
                     when 2 =>
                         control.MEM <= CMD_NOP;
-                        state_ctr := -1;
+                        state_ctr := state_rst;
                         state_nxt <= FETCH;
                     when others =>
-                        assert false report "STORE:wut";
+                        assert false report "STORE:invalid state_ctr: " & str(state_ctr);
                 end case;
                 state_ctr := state_ctr + 1;
 

@@ -10,6 +10,8 @@ package types is
         MEM    : std_logic;
         -- ALU
         ALU    : std_logic;
+        ALUREAD: std_logic;
+        ALU2AC : std_logic; -- populate ac from alu
         -- registers
         AC     : std_logic;
         MAR    : std_logic;

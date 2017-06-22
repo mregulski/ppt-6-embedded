@@ -33,7 +33,8 @@ architecture test of testbench is
         port (
             clk  : in std_logic;
             cmd  : in std_logic;
-            data : in std_logic_vector(WORD_WIDTH-1 downto 0);
+            read : in std_logic;
+            data : inout std_logic_vector(WORD_WIDTH-1 downto 0);
             ac   : inout std_logic_vector(WORD_WIDTH-1 downto 0)
         );
     end component;
@@ -67,10 +68,11 @@ architecture test of testbench is
             WORD_WIDTH : integer := 9
         );
         port (
-            clk:       in std_logic;
-            cmd:       in std_logic;
-            data:      inout std_logic_vector(WORD_WIDTH-1 downto 0) := (others=>'Z');
-            alu:       inout std_logic_vector(WORD_WIDTH-1 downto 0) := (others=>'Z')
+            clk     : in std_logic;
+            cmd     : in std_logic;
+            alu_get : in std_logic;
+            data    : inout std_logic_vector(WORD_WIDTH-1 downto 0) := (others=>'Z');
+            alu     : inout std_logic_vector(WORD_WIDTH-1 downto 0) := (others=>'Z')
         );
     end component;
 
@@ -79,9 +81,9 @@ architecture test of testbench is
             WORD_WIDTH : integer
         );
         port (
-            clk:       in std_logic;
-            cmd:       in std_logic;
-            data:      inout std_logic_vector(WORD_WIDTH-1 downto 0) := (others=>'Z')
+            clk  : in std_logic;
+            cmd  : in std_logic;
+            data : inout std_logic_vector(WORD_WIDTH-1 downto 0) := (others=>'Z')
         );
     end component;
 
@@ -90,10 +92,10 @@ architecture test of testbench is
             ADDRESS_WIDTH : integer := 5
         );
         port (
-            clk:       in std_logic;
-            cmd:       in std_logic;
-            data:      inout std_logic_vector(ADDRESS_WIDTH-1 downto 0) := (others=>'Z');
-            address:   out std_logic_vector(ADDRESS_WIDTH-1 downto 0) := (others=>'Z')
+            clk     : in std_logic;
+            cmd     : in std_logic;
+            data    : inout std_logic_vector(ADDRESS_WIDTH-1 downto 0) := (others=>'Z');
+            address : out std_logic_vector(ADDRESS_WIDTH-1 downto 0) := (others=>'Z')
         );
     end component;
 
@@ -123,7 +125,7 @@ architecture test of testbench is
     constant DATA_CLR : std_logic_vector(WORD_WIDTH - 1 downto 0) := (others => 'Z');
 
     -- other constants
-    constant clk_period : time := 20 ns;
+    constant clk_period : time := 10 ns;
 
 
     ---------------------------------------
@@ -150,9 +152,9 @@ architecture test of testbench is
 
 begin
 
-    ------------------------
-    -- COMPONENTS         --
-    ------------------------
+------------------------
+-- COMPONENTS         --
+------------------------
 
     ------------
     -- Memory --
@@ -181,6 +183,7 @@ begin
     port map (
         clk => clk,
         cmd => control.ALU,
+        read => control.ALUREAD,
         data => data_bus,
         ac => ac_alu
     );
@@ -224,6 +227,7 @@ begin
     port map (
         clk => clk,
         cmd => control.AC,
+        alu_get => control.ALU2AC,
         data => data_bus,
         alu => ac_alu
     );
@@ -295,14 +299,15 @@ begin
         dbg => debug
     );
 
-    ------------------------
-    -- END COMPONENTS     --
-    ------------------------
+------------------------
+-- END COMPONENTS     --
+------------------------
 
     test_process : process
     begin
         wait for clk_period * 100;
-
+        -- such busy
+        -- very ops
         wait;
     end process;
 
