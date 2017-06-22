@@ -1,9 +1,9 @@
 library ieee;
 USE ieee.std_logic_1164.ALL;
 use ieee.numeric_std.all;
+use std.textio.all;
 use work.txt_util.all;
 use work.types.all;
-
 
 entity controller is
 
@@ -82,6 +82,9 @@ begin
     main: process(state_cur, data_bus)
         variable state_ctr : integer := -1; -- for 'substates'
         variable opcode    : std_logic_vector(3 downto 0);
+        variable cmp       : std_logic_vector(1 downto 0);
+        variable cmp_res   : boolean;
+        variable in_line   : line;
     begin
         case state_cur is
             ------------
@@ -216,12 +219,52 @@ begin
                         report "EXECUTE:SUBT";
                     when CIN =>
                         report "EXECUTE:CIN";
+                        readline(input, in_line);
                     when COUT =>
                         report "EXECUTE:COUT";
                     when HALT =>
                         assert false report "received HALT - stopping";
                     when SKIPCOND =>
-                        report "EXECUTE:SKIPCOND";
+                        report "EXECUTE:SKIPCOND:" & str(state_ctr);
+                        case state_ctr is
+                            when 0 =>
+                                control.IR <= CMD_READ;
+                            when 1 =>
+                                control.IR <= CMD_NOP;
+                                control.AC <= CMD_READ;
+                            when 2 =>
+                                control.AC <= CMD_NOP;
+                                cmp := bus_buffer(ADDRESS_WIDTH-1 downto ADDRESS_WIDTH-2); -- must wait this long because reasons
+                                -- do the comparing
+                                if cmp = "00" then -- LT 0
+                                    report "SKIPCOND:comparing AC < 0";
+                                    cmp_res := signed(bus_buffer) < to_signed(0, WORD_WIDTH);
+                                elsif cmp = "01" then -- EQ 0
+                                    report "SKIPCOND:comparing AC = 0";
+                                    cmp_res := signed(bus_buffer) = to_signed(0, WORD_WIDTH);
+                                elsif cmp = "10" then -- GT 0
+                                    report "SKIPCOND:comparing AC > 0";
+                                    cmp_res := signed(bus_buffer) > to_signed(0, WORD_WIDTH);
+                                else
+                                    report "SKIPCOND:comparing AC ? 0";
+                                    cmp_res := false;
+                                end if;
+                                if cmp_res then
+                                    -- increment pc
+                                    control.PC <= PC_INC;
+                                else
+                                    state_ctr := -1;
+                                    state_nxt <= FETCH;
+                                end if;
+                            when 3 =>
+                                control.PC <= PC_NOP;
+                                state_ctr := -1;
+                                state_nxt <= FETCH;
+                            when others =>
+                                control.PC <= PC_NOP;
+                                state_ctr := -1;
+                                state_nxt <= FETCH;
+                        end case;
                     when JUMP =>
                         report "EXECUTE:JUMP:" & str(state_ctr);
                         case state_ctr is
