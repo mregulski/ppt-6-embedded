@@ -50,6 +50,17 @@ architecture test of testbench is
         );
     end component;
 
+    component ioreg
+        generic (
+            WORD_WIDTH : integer
+        );
+        port (
+            clk:       in std_logic;
+            cmd:       in std_logic;
+            data:      inout std_logic_vector(WORD_WIDTH-1 downto 0) := (others=>'Z')
+        );
+    end component;
+
     component addr_reg
         generic (
             ADDRESS_WIDTH : integer := 5
@@ -164,21 +175,6 @@ begin
     );
 
     ------------
-    -- CTRL   --
-    ------------
-    ctrl : controller
-    generic map (
-        ADDRESS_WIDTH => 5,
-        WORD_WIDTH => 9
-    )
-    port map (
-        clk => clk,
-        data_bus => data_bus,
-        ctrl_out => control,
-        dbg => debug
-    );
-
-    ------------
     -- MBR    --
     ------------
     mbr : reg
@@ -215,6 +211,46 @@ begin
         clk => clk,
         cmd => control.ir,
         data => data_bus
+    );
+
+    ------------
+    -- InReg  --
+    ------------
+    inreg : ioreg
+    generic map (
+        WORD_WIDTH => WORD_WIDTH
+    )
+    port map (
+        clk => clk,
+        cmd => control.inreg,
+        data => data_bus
+    );
+
+    ------------
+    -- OutReg --
+    ------------
+    outreg : ioreg
+    generic map (
+        WORD_WIDTH => WORD_WIDTH
+    )
+    port map (
+        clk => clk,
+        cmd => control.outreg,
+        data => data_bus
+    );
+    ------------
+    -- CTRL   --
+    ------------
+    ctrl : controller
+    generic map (
+        ADDRESS_WIDTH => 5,
+        WORD_WIDTH => 9
+    )
+    port map (
+        clk => clk,
+        data_bus => data_bus,
+        ctrl_out => control,
+        dbg => debug
     );
 
     ------------------------

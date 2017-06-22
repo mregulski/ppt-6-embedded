@@ -84,7 +84,7 @@ begin
         variable opcode    : std_logic_vector(3 downto 0);
         variable cmp       : std_logic_vector(1 downto 0);
         variable cmp_res   : boolean;
-        variable in_line   : line;
+
     begin
         case state_cur is
             ------------
@@ -219,9 +219,36 @@ begin
                         report "EXECUTE:SUBT";
                     when CIN =>
                         report "EXECUTE:CIN";
-                        readline(input, in_line);
+                        case state_ctr is
+                            when 0 =>
+                                control.INREG <= CMD_READ;
+                            when 1 =>
+                                control.INREG <= CMD_NOP;
+                                control.AC <= CMD_WRITE;
+                            when 2 =>
+                                control.AC <= CMD_NOP;
+                                state_ctr := -1;
+                                state_nxt <= FETCH;
+                            when others =>
+                                state_ctr := -1;
+                                state_nxt <= FETCH;
+                        end case;
                     when COUT =>
                         report "EXECUTE:COUT";
+                        case state_ctr is
+                            when 0 =>
+                                control.AC <= CMD_READ;
+                            when 1 =>
+                                control.AC <= CMD_NOP;
+                                control.OUTREG <= CMD_WRITE;
+                            when 2 =>
+                                control.OUTREG <= CMD_NOP;
+                                state_ctr := -1;
+                                state_nxt <= FETCH;
+                            when others =>
+                                state_ctr := -1;
+                                state_nxt <= FETCH;
+                        end case;
                     when HALT =>
                         assert false report "received HALT - stopping";
                     when SKIPCOND =>
