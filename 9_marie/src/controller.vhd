@@ -218,7 +218,7 @@ begin
                     when SUBT =>
                         report "EXECUTE:SUBT";
                     when CIN =>
-                        report "EXECUTE:CIN";
+                        report "EXECUTE:CIN:" & str(state_ctr);
                         case state_ctr is
                             when 0 =>
                                 control.INREG <= CMD_READ;
@@ -234,7 +234,7 @@ begin
                                 state_nxt <= FETCH;
                         end case;
                     when COUT =>
-                        report "EXECUTE:COUT";
+                        report "EXECUTE:COUT:" & str(state_ctr);
                         case state_ctr is
                             when 0 =>
                                 control.AC <= CMD_READ;
@@ -311,7 +311,6 @@ begin
 
                 end case;
                 state_ctr := state_ctr + 1;
-                -- state_nxt <= EXECUTE;
 
             when STORE =>
                 -- push MBR to mem[MAR]

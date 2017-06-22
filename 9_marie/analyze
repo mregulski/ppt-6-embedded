@@ -1,5 +1,5 @@
 #!/bin/bash
-ghdl -a src/types.vhd src/txt_util.vhd
-ghdl -a src/pc.vhd src/ram.vhd src/reg.vhd src/ioreg.vhd src/mar.vhd src/alu.vhd
-ghdl -a src/controller.vhd
-ghdl -a src/*_tb.vhd src/testbench.vhd
+ghdl -a src/types.vhd src/txt_util.vhd\
+    src/pc.vhd src/ram.vhd src/reg.vhd src/ioreg.vhd src/mar.vhd  src/acreg.vhd src/alu.vhd \
+    src/controller.vhd \
+    src/*_tb.vhd src/testbench.vhd

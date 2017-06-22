@@ -26,6 +26,18 @@ architecture test of testbench is
         );
     end component;
 
+    component alu is
+        generic (
+            WORD_WIDTH : integer := 9
+        );
+        port (
+            clk  : in std_logic;
+            cmd  : in std_logic;
+            data : in std_logic_vector(WORD_WIDTH-1 downto 0);
+            ac   : inout std_logic_vector(WORD_WIDTH-1 downto 0)
+        );
+    end component;
+
     component pc
         generic (
             COUNTER_WIDTH : integer
@@ -47,6 +59,18 @@ architecture test of testbench is
             clk:       in std_logic;
             cmd:       in std_logic;
             data:      inout std_logic_vector(WORD_WIDTH-1 downto 0) := (others=>'Z')
+        );
+    end component;
+
+    component acreg is
+        generic (
+            WORD_WIDTH : integer := 9
+        );
+        port (
+            clk:       in std_logic;
+            cmd:       in std_logic;
+            data:      inout std_logic_vector(WORD_WIDTH-1 downto 0) := (others=>'Z');
+            alu:       inout std_logic_vector(WORD_WIDTH-1 downto 0) := (others=>'Z')
         );
     end component;
 
@@ -109,7 +133,7 @@ architecture test of testbench is
     -- general signals
     signal clk            : std_logic := '0';
     signal data_bus       : std_logic_vector(WORD_WIDTH-1 downto 0) := (others => 'Z');
-
+    signal ac_alu         : std_logic_vector(WORD_WIDTH-1 downto 0) := (others => 'Z');
     signal control : control_t := (pc=> "ZZZ", others => 'Z');
 
 
@@ -145,6 +169,22 @@ begin
         data => data_bus
     );
 
+
+    ------------
+    --  ALU   --
+    ------------
+
+    the_alu : alu
+    generic map (
+        WORD_WIDTH => WORD_WIDTH
+    )
+    port map (
+        clk => clk,
+        cmd => control.ALU,
+        data => data_bus,
+        ac => ac_alu
+    );
+
     ------------
     -- PC     --
     ------------
@@ -175,6 +215,20 @@ begin
     );
 
     ------------
+    -- AC     --
+    ------------
+    ac : acreg
+    generic map (
+        WORD_WIDTH => WORD_WIDTH
+    )
+    port map (
+        clk => clk,
+        cmd => control.AC,
+        data => data_bus,
+        alu => ac_alu
+    );
+
+    ------------
     -- MBR    --
     ------------
     mbr : reg
@@ -184,19 +238,6 @@ begin
     port map (
         clk => clk,
         cmd => control.MBR,
-        data => data_bus
-    );
-
-    ------------
-    -- AC     --
-    ------------
-    ac : reg
-    generic map (
-        WORD_WIDTH => WORD_WIDTH
-    )
-    port map (
-        clk => clk,
-        cmd => control.AC,
         data => data_bus
     );
 
@@ -238,6 +279,7 @@ begin
         cmd => control.outreg,
         data => data_bus
     );
+
     ------------
     -- CTRL   --
     ------------
